@@ -323,36 +323,44 @@ document.addEventListener('submit', (event) => {
   holder.append(toggle);
   document.querySelector('.snowfield')?.append(holder);
 
-  // --- Szene 1: Krampus ---
+  // --- Szene 1: Krampusse (einer bis drei auf einmal) ---
 
   function krampusScene() {
     const size = W() < 600 ? 48 : 64;
+    const count = 1 + (Math.random() < 0.6 ? 1 : 0) + (Math.random() < 0.35 ? 1 : 0);
     const fromLeft = Math.random() < 0.5;
-    const k = {
-      el: add('', '/img/krampus.svg', size, size),
-      x: fromLeft ? -size : W(),
-      y: rand(H() * 0.1, H() * 0.45),
-      vx: (fromLeft ? 1 : -1) * rand(110, 160),
-      vy: 0, rot: 0, t: 0, alive: true,
-    };
+    const pack = Array.from({ length: count }, (_, i) => {
+      const left = i === 0 ? fromLeft : Math.random() < 0.5;
+      return {
+        el: null,
+        delay: i === 0 ? 0 : i * rand(0.5, 1.1),
+        x: left ? -size : W(),
+        y: rand(H() * 0.08, H() * 0.5),
+        vx: (left ? 1 : -1) * rand(110, 170),
+        vy: 0, rot: 0, t: 0, alive: true, gone: false, shots: 0,
+      };
+    });
     const shooter = makeShooter(size, fromLeft ? 0 : W(), fromLeft);
     const gear = gearUp(shooter, 'gun');
     const bullets = [];
+    let elapsed = 0;
     let cooldown = 0.15;
-    let shots = 0;
+    let kills = 0;
     let after = 0;
-    let gone = false;
+    let leaving = false;
 
-    function fire() {
+    const inView = (k) => k.el && k.alive && k.x > 0 && k.x < W() - size;
+
+    function fire(k) {
       const m = gear.muzzle();
       const speed = 720;
       let tx = k.x + size / 2;
       let ty = k.y + size / 2;
       tx += k.vx * (Math.hypot(tx - m.x, ty - m.y) / speed); // vorhalten
-      if (shots === 0 && Math.random() < 0.5) ty += (Math.random() < 0.5 ? -1 : 1) * size * 1.1; // daneben!
+      if (k.shots === 0 && Math.random() < 0.4) ty += (Math.random() < 0.5 ? -1 : 1) * size * 1.1; // daneben!
       const angle = Math.atan2(ty - m.y, tx - m.x);
       bullets.push({ el: add('bullet'), x: m.x, y: m.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, angle });
-      shots++;
+      k.shots++;
     }
 
     function removeBullet(b) {
@@ -362,28 +370,38 @@ document.addEventListener('submit', (event) => {
 
     return {
       update(dt) {
-        if (k.el) {
+        elapsed += dt;
+        for (const k of pack) {
+          if (k.gone) continue;
+          if (!k.el) {
+            if (elapsed < k.delay) continue;
+            k.el = add('', '/img/krampus.svg', size, size);
+          }
           if (k.alive) {
             k.t += dt;
             k.x += k.vx * dt;
             put(k.el, k.x, k.y + (Math.floor(k.t * 5) % 2 ? -4 : 0));
-            if (k.x > W() + size || k.x < -size * 2) { k.el.remove(); k.el = null; }
+            if (k.x > W() + size || k.x < -size * 2) { k.el.remove(); k.el = null; k.gone = true; }
           } else {
             k.vy += 1100 * dt;
             k.y += k.vy * dt;
             k.x += k.vx * 0.25 * dt;
             k.rot += 600 * dt;
             put(k.el, k.x, k.y, ` rotate(${Math.round(k.rot / 45) * 45}deg)`);
-            if (k.y > H() + size) { k.el.remove(); k.el = null; }
+            if (k.y > H() + size) { k.el.remove(); k.el = null; k.gone = true; }
           }
         }
 
+        // Ziel: der Krampus, der am weitesten im Bild ist
+        const targets = pack.filter(inView);
+        const target = targets.sort((a, b) => Math.abs(a.x + size / 2 - W() / 2) - Math.abs(b.x + size / 2 - W() / 2))[0]
+          ?? pack.find((k) => k.el && k.alive);
+
         shooter.update(dt);
-        if (k.el && k.alive) {
-          gear.update(dt, k.x + size / 2);
+        if (target && !leaving) {
+          gear.update(dt, target.x + size / 2);
           cooldown -= dt;
-          const inView = k.x > 0 && k.x < W() - size;
-          if (gear.armed && cooldown <= 0 && inView && shots < 4) { fire(); cooldown = rand(0.45, 0.8); }
+          if (gear.armed && cooldown <= 0 && inView(target) && target.shots < 4) { fire(target); cooldown = rand(0.35, 0.65); }
         }
 
         for (const b of [...bullets]) {
@@ -391,11 +409,13 @@ document.addEventListener('submit', (event) => {
           b.y += b.vy * dt;
           put(b.el, b.x - 5, b.y - 2, ` rotate(${b.angle}rad)`);
           const pad = size * 0.18;
-          if (k.el && k.alive && b.x > k.x + pad && b.x < k.x + size - pad && b.y > k.y + pad && b.y < k.y + size - pad) {
-            k.alive = false;
-            k.vy = -260;
+          const hit = pack.find((k) => k.el && k.alive && b.x > k.x + pad && b.x < k.x + size - pad && b.y > k.y + pad && b.y < k.y + size - pad);
+          if (hit) {
+            hit.alive = false;
+            hit.vy = -260;
+            kills++;
             explode(b.x, b.y, size * 1.3);
-            popup('K.O.!', k.x, k.y - 16);
+            popup(kills === count && count > 1 ? 'Alle erwischt!' : 'K.O.!', hit.x, hit.y - 16);
             stats.krampus++;
             saved.set('pe-krampus', String(stats.krampus));
             label();
@@ -405,13 +425,19 @@ document.addEventListener('submit', (event) => {
           }
         }
 
-        if (!k.el || !k.alive) {
+        const stillComing = pack.some((k) => !k.gone && (k.alive || !k.el));
+        if (!stillComing || pack.every((k) => !k.alive || k.gone)) {
           after += dt;
-          if (after > 0.8 && !gone) { gone = true; gear.disarm(); shooter.leave(); }
+          if (after > 0.8 && !leaving) { leaving = true; gear.disarm(); shooter.leave(); }
         }
-        return Boolean(k.el || !shooter.gone() || bullets.length);
+        return Boolean(pack.some((k) => !k.gone) || !shooter.gone() || bullets.length);
       },
-      end() { gear.disarm(); bullets.forEach((b) => b.el.remove()); shooter.remove(); },
+      end() {
+        gear.disarm();
+        bullets.forEach((b) => b.el.remove());
+        pack.forEach((k) => k.el?.remove());
+        shooter.remove();
+      },
     };
   }
 
@@ -664,13 +690,13 @@ document.addEventListener('submit', (event) => {
   function pickScene() {
     const roll = Math.random();
     // kleine Krampusse oft, Weihnachtsmann manchmal, Boss selten
-    const kind = FORCED ?? (roll < 0.06 ? 'boss' : roll < 0.34 ? 'santa' : 'krampus');
+    const kind = FORCED ?? (roll < 0.05 ? 'boss' : roll < 0.27 ? 'santa' : 'krampus');
     if (kind === 'boss') return bossScene();
     if (kind === 'santa') return santaScene(forest ? standingTrees() : []);
     return krampusScene();
   }
 
-  function schedule(ms = rand(5000, 11000)) {
+  function schedule(ms = rand(3500, 8000)) {
     clearTimeout(timer);
     if (enabled) timer = setTimeout(start, ms);
   }
