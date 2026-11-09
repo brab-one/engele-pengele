@@ -1,0 +1,11 @@
+# Caddy holt das HTTPS-Zertifikat für SITE_DOMAIN automatisch (Let's Encrypt).
+{$SITE_DOMAIN} {
+	header -Server
+	# Kein "encode": die App entscheidet selbst, was sie komprimiert (Seiten mit geheimen Links nicht).
+	reverse_proxy app:8080
+}
+
+# www.-Adresse leitet auf die Hauptadresse um
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}

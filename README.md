@@ -51,6 +51,69 @@ In `/admin` you can:
 - **Data file:** `data/engele.json` is written atomically with mode 0600. Only name, email and the draw are stored.
 - **SMTP:** TLS or STARTTLS with certificate checks. Plain-text SMTP is refused unless the mail server is on localhost.
 
+## Deploy with Dockge (behind your reverse proxy)
+
+On every push to `main`, a GitHub Action (`.github/workflows/docker.yml`) runs the tests, builds the image and stores it privately at `ghcr.io/brab-one/engele-pengele:latest`. The image is built for amd64 and arm64, so it also runs on a Raspberry Pi.
+
+### 1. Let the server pull the private image (once)
+
+1. On GitHub, create a classic personal access token with only the `read:packages` scope.
+2. Log in to the registry where Dockge runs:
+
+   ```bash
+   docker login ghcr.io -u brab-one
+   ```
+
+   Use the token as the password. Dockge runs `docker compose` inside its own container, so if pulling fails, log in there instead:
+
+   ```bash
+   docker exec -it <dockge-container> docker login ghcr.io -u brab-one
+   ```
+
+   Alternatively, mount the host's `~/.docker` into the Dockge container.
+
+### 2. Create the stack in Dockge
+
+1. Click **+ Compose** and paste [`dockge/compose.yaml`](dockge/compose.yaml).
+2. In the `.env` field, set `BASE_URL` (the public `https://` address) and `ADMIN_PASSWORD`. The template is [`dockge/.env.example`](dockge/.env.example).
+3. Click **Deploy**.
+
+### 3. Point your reverse proxy at it
+
+Forward your domain to `http://SERVER-IP:8787` (or another port set with `HOST_PORT`), with a Let's Encrypt certificate and HTTPS forced. In Nginx Proxy Manager, also tick **Block Common Exploits**. The app trusts the proxy's `X-Forwarded-For` header.
+
+### Updating
+
+Push to `main`, wait for the Action to finish, then click **Update** on the stack in Dockge. Data is kept in the stack's `data` volume.
+
+## Deploy with Docker Compose
+
+`compose.yaml` runs the site behind [Caddy](https://caddyserver.com), which gets the HTTPS certificate automatically. It's the same locked-down setup `webhost` generates:
+
+- the app runs read-only and as an unprivileged user, with all Linux capabilities dropped
+- only Caddy is reachable from outside
+- data lives in a Docker volume
+
+On the server, you need Docker with the Compose plugin, ports 80 and 443 free, and DNS for your domain (and `www.`) pointing at the server.
+
+```bash
+cp .env.example .env
+```
+
+In `.env`, set `SITE_DOMAIN` and `ADMIN_PASSWORD`. You can also set up email there, or later on the setup page.
+
+```bash
+docker compose up -d
+```
+
+Everyday commands:
+
+| Command | What it does |
+|---|---|
+| `docker compose logs -f app` | Show the app's output |
+| `git pull && docker compose up -d --build` | Update to the latest version |
+| `docker compose down` | Stop the site; data is kept in the `app_data` volume |
+
 ## Deploy with webhost (Docker)
 
 The easiest way is the `webhost` tool in the sibling folder:

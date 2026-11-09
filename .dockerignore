@@ -1,0 +1,11 @@
+.git
+.env
+data
+node_modules
+test
+tools
+*.md
+compose.yaml
+Caddyfile
+.github
+dockge

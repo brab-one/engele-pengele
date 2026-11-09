@@ -1,0 +1,49 @@
+# Pengele Engele als Dockge-Stack (hinter deinem Reverse Proxy).
+#
+# 1. In Dockge: "+ Compose" → Name z. B. pengele-engele → diese Datei einfügen.
+# 2. Im .env-Feld darunter BASE_URL und ADMIN_PASSWORD eintragen (Vorlage: dockge/.env.example).
+# 3. "Deploy".
+# 4. Im Reverse Proxy (z. B. Nginx Proxy Manager): https://deine-domain → http://SERVER-IP:8787
+#    mit Let's-Encrypt-Zertifikat und "Force SSL".
+#
+# Das Image liegt privat auf GitHub – einmalig am Server anmelden, siehe README ("Dockge").
+
+services:
+  pengele-engele:
+    image: ghcr.io/brab-one/engele-pengele:latest
+    restart: unless-stopped
+    init: true
+    ports:
+      # Nur für den Reverse Proxy. Läuft der Proxy auf demselben Rechner (nicht im Container),
+      # reicht "127.0.0.1:${HOST_PORT:-8787}:8080" – dann ist der Port von außen nicht erreichbar.
+      - "${HOST_PORT:-8787}:8080"
+    environment:
+      BASE_URL: ${BASE_URL:?BASE_URL fehlt – die öffentliche Adresse, z. B. https://wichteln.example.at}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD fehlt – mindestens 10 Zeichen}
+      TRUST_PROXY: "1"
+      TZ: ${TZ:-Europe/Vienna}
+      HOST: 0.0.0.0
+      PORT: "8080"
+      DATA_DIR: /data
+    volumes:
+      - data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(8080,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  data: {}

@@ -1,0 +1,79 @@
+# Pengele Engele mit Docker Compose: Caddy (automatisches HTTPS) vor der App –
+# dieselbe abgesicherte Einrichtung, die auch "webhost" erzeugt.
+#
+#   cp .env.example .env     # SITE_DOMAIN und ADMIN_PASSWORD eintragen
+#   docker compose up -d
+#
+# Die Domain (und www.) muss per DNS auf den Server zeigen, Ports 80 und 443 müssen frei sein.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?SITE_DOMAIN fehlt in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    networks: [web]
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  app:
+    build: .
+    image: pengele-engele
+    init: true
+    restart: unless-stopped
+    # Passwörter, Mail-Einstellungen usw. aus .env – die Werte unten haben Vorrang.
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8080"
+      DATA_DIR: /data
+      BASE_URL: https://${SITE_DOMAIN}
+      TRUST_PROXY: "1"
+      TZ: ${TZ:-Europe/Vienna}
+    volumes:
+      - app_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(8080,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks: [web]
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  web: {}
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  app_data: {}
