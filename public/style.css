@@ -331,20 +331,25 @@ td.actions form { margin: 0; }
 
 /* --- Wald und Schnee unten --- */
 
-.ground { margin-top: 3rem; }
+.ground { margin-top: 2rem; }
 .forest {
-  height: 64px;
-  background: url(/img/tree.svg) repeat-x 8px 100% / 64px 64px;
+  height: 48px;
+  background: url(/img/tree.svg) repeat-x 8px 100% / 48px 48px;
   image-rendering: pixelated;
 }
-.snowcap { height: 16px; background: url(/img/snowcap.svg) repeat-x 0 0 / 64px 16px; margin-top: -4px; }
+.snowcap { height: 12px; background: url(/img/snowcap.svg) repeat-x 0 0 / 48px 12px; margin-top: -3px; }
 .snowfield {
   background: var(--snow);
   color: #1b2148;
   text-align: center;
-  padding: .75rem 16px 2rem;
+  padding: .4rem 16px .7rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 1rem;
 }
-.snowfield p { margin: .25rem auto; max-width: 40rem; }
+.snowfield p { margin: .1rem 0; }
 .snowfield a { color: var(--red-bar); font-weight: 800; }
 
 /* --- Kleine Bildschirme --- */
@@ -418,7 +423,7 @@ select { appearance: none; cursor: pointer; background-image: linear-gradient(45
 @keyframes float-up { to { translate: 0 -48px; opacity: 0; } }
 
 .forest.live { background: none; display: flex; align-items: flex-end; overflow: hidden; padding-left: 8px; }
-.forest.live img { flex: none; width: 64px; height: 64px; image-rendering: pixelated; }
+.forest.live img { flex: none; width: 48px; height: 48px; image-rendering: pixelated; }
 .forest.live img.regrow { animation: regrow .6s steps(4); transform-origin: 50% 100%; }
 @keyframes regrow { from { scale: 1 .2; } }
 
@@ -475,3 +480,140 @@ select { appearance: none; cursor: pointer; background-image: linear-gradient(45
 
 .forest.live { position: relative; }
 .forest .tree-boom { position: absolute; image-rendering: pixelated; pointer-events: none; animation: boom .6s steps(4) forwards; }
+
+/* --- Startseite auf einen Blick (ohne Scrollen) --- */
+
+.page-home .wrap, .page-gate .wrap { max-width: 1120px; padding-bottom: 0; }
+.page-home .ground, .page-gate .ground { margin-top: 1rem; }
+
+.home {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "hero" "hud" "join" "steps" "info";
+  padding-top: .75rem;
+}
+.home > .hero { grid-area: hero; }
+.home > .hud { grid-area: hud; }
+.home > .steps-panel { grid-area: steps; }
+.home > .info-panel { grid-area: info; }
+.home > .join { grid-area: join; }
+.home > .panel { margin: 4px 4px 10px; }
+
+.page-home .hero, .page-gate .hero { padding: .5rem 0 0; }
+.page-home .logo, .page-gate .logo { height: clamp(72px, 19vh, 200px); width: auto; max-width: 100%; }
+.page-home .hero-row .sprite, .page-gate .hero-row .sprite { height: clamp(32px, 7vh, 64px); width: auto; }
+.page-home .tagline, .page-gate .tagline { margin-top: .5rem; font-size: .88rem; line-height: 1.45; }
+.page-home .hud { margin: 0; gap: 10px 14px; }
+.page-home .hud li { padding: .25rem .75rem .3rem; }
+.page-home .hud b { font-size: 1.05rem; }
+
+.steps-panel .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.steps-panel .steps li { gap: .35rem; }
+.steps-panel .steps .sprite { height: 36px; }
+.steps-panel .steps b { font-size: .82rem; }
+.steps-panel .steps p { font-size: .78rem; line-height: 1.4; margin: 0; }
+.info-panel .pre { max-height: 7.5em; overflow: auto; margin: 0; }
+
+.join .form label { margin-top: .7rem; }
+.join .form .btn { margin-top: 1rem; }
+.join .form small { font-size: .74rem; margin-top: .2rem; }
+.join .note { font-size: .8rem; margin: .8rem 0 0; }
+.join > p.small { margin: .6rem 0 0; }
+.page-gate .panel { max-width: 460px; margin: 1.25rem auto 0; }
+
+/* Breite Bildschirme: links Logo, Überblick und Anleitung, rechts das Formular */
+@media (min-width: 720px) {
+  .home {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 400px);
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas:
+      "hero  join"
+      "hud   join"
+      "steps join"
+      "info  join";
+    column-gap: clamp(1rem, 3vw, 2.25rem);
+    align-items: start;
+  }
+  .page-home .hud { justify-content: flex-start; }
+  .home > .join { margin-top: .75rem; }
+}
+
+/* Niedrige Bildschirme: Hinweise weglassen, enger setzen */
+@media (max-height: 820px) {
+  .join .form small, .join .note { display: none; }
+  .home { gap: .75rem; }
+  .home > .panel > h2 { padding-top: .35rem; padding-bottom: .35rem; font-size: 1rem; margin-bottom: .9rem; }
+  .home > .panel { padding-top: .9rem; padding-bottom: .9rem; }
+}
+@media (max-height: 700px) {
+  .page-home .tagline { display: none; }
+  .steps-panel .steps .sprite { height: 28px; }
+}
+
+/* Schmale Bildschirme (Handy): alles etwas kleiner */
+@media (max-width: 560px) {
+  .home { gap: .6rem; padding-top: .25rem; }
+  .page-home .tagline { font-size: .78rem; }
+  .page-home .hud { gap: 8px; }
+  .page-home .hud li { padding: .15rem .5rem .2rem; }
+  .page-home .hud span { font-size: .6rem; }
+  .page-home .hud b { font-size: .9rem; }
+  .steps-panel .steps { gap: .4rem; }
+  .steps-panel .steps p { display: none; }
+  .steps-panel .steps b { font-size: .72rem; letter-spacing: .04em; }
+  .join .form small, .join .note { display: none; }
+  .snowfield .small { font-size: .7rem; }
+}
+.snowfield p { font-size: .82rem; }
+.snowfield .small { font-size: .74rem; }
+
+/* Handy: Anleitung als schmale Bildleiste, Überblick als 2×2-Raster */
+@media (max-width: 560px) {
+  .page-home .tagline { display: none; }
+  .page-home .logo { height: clamp(60px, 13vh, 120px); }
+  .page-home .hero-row .sprite { height: clamp(28px, 6vh, 48px); }
+  .page-home .hud { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin: 0 4px; }
+  .page-home .hud li { margin: 4px; }
+  .steps-panel { padding: .6rem .75rem !important; }
+  .steps-panel > h2 { display: none; }
+  .steps-panel .steps .sprite { height: 24px; }
+  .snowfield { padding-top: .25rem; padding-bottom: .4rem; }
+}
+@media (max-width: 1100px) and (min-width: 720px) {
+  .steps-panel .steps p { font-size: .72rem; }
+}
+
+/* Feinschliff, damit die Startseite überall ohne Scrollen passt */
+@media (max-height: 820px) {
+  .home > .panel > h2 { margin-top: -.9rem; }
+}
+@media (max-width: 1000px) and (min-width: 720px) {
+  .steps-panel .steps p { display: none; }
+  .page-home .hud li { padding: .2rem .55rem .25rem; }
+  .page-home .hud span { font-size: .6rem; }
+  .page-home .hud b { font-size: .92rem; }
+}
+@media (max-width: 560px) {
+  .snowfield p:first-child { display: none; }
+  .home > .panel { padding: .85rem; }
+  .home > .panel > h2 { margin: -.85rem -.85rem .8rem; padding: .4rem .85rem; font-size: 1rem; }
+  .join .form label { margin-top: .5rem; }
+  .join .form input { padding: .55rem .7rem; }
+  .join .form .btn { margin-top: .8rem; padding: .6rem 1.1rem; }
+}
+@media (max-width: 560px) and (max-height: 760px) {
+  .steps-panel { display: none; }
+  .page-home .logo { height: clamp(52px, 11vh, 96px); }
+  .page-home .forest { height: 32px; background-size: 32px 32px; }
+  .page-home .forest.live img { width: 32px; height: 32px; }
+}
+@media (max-width: 560px) and (max-height: 760px) {
+  .page-home .privacy { display: none; }
+  .home { gap: .45rem; }
+  .snowfield { gap: 0 .75rem; }
+}
+@media (max-width: 560px) and (max-height: 760px) {
+  .snowfield { padding-top: .15rem; padding-bottom: .25rem; }
+  .game-toggle { font-size: .7rem; }
+}

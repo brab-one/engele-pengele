@@ -30,7 +30,7 @@ const countdown = (iso) => html`<b class="countdown" data-countdown="${iso}">${c
 
 // --- Grundgerüst -------------------------------------------------------------
 
-function layout({ title, body, bigHeader = false }) {
+function layout({ title, body, bigHeader = false, page = '' }) {
   return html`<!doctype html>
 <html lang="de">
 <head>
@@ -43,7 +43,7 @@ function layout({ title, body, bigHeader = false }) {
 <link rel="stylesheet" href="${asset('/style.css')}">
 <script src="${asset('/app.js')}" defer></script>
 </head>
-<body>
+<body${page ? html` class="page-${page}"` : ''}>
 <div class="snow" aria-hidden="true"></div>
 ${bigHeader ? '' : html`<header class="topbar"><a href="/"><img class="logo small" src="${asset('/img/logo.svg')}" width="264" height="120" alt="Pengele Engele – zur Startseite"></a></header>`}
 <main class="wrap">
@@ -54,7 +54,7 @@ ${body}
   <div class="snowcap" aria-hidden="true"></div>
   <div class="snowfield">
     <p><b>Pengele Engele</b> · geheimes Wichteln</p>
-    <p class="small">Gespeichert werden nur Name und E-Mail-Adresse, ausschließlich für die Ziehung. Nach dem Fest löscht die Orga alles. · <a href="/admin">Orga</a></p>
+    <p class="small"><span class="privacy">Gespeichert werden nur Name und E-Mail, nur für die Ziehung – nach dem Fest wird alles gelöscht. · </span><a href="/admin">Orga</a></p>
   </div>
 </footer>
 </body>
@@ -92,6 +92,7 @@ const hero = () => html`<header class="hero">
 export function gate({ error = null }) {
   return layout({
     bigHeader: true,
+    page: 'gate',
     body: html`
 ${hero()}
 ${panel('Eintritt', html`<form class="form" method="post" action="/eintritt">
@@ -132,9 +133,11 @@ export function home(s, { values = {}, error = null, lostLink = false } = {}) {
   else if (!s.open) join = html`<p class="status">Die Anmeldung ist gerade geschlossen. Schau später nochmal vorbei.</p>`;
   else join = registerForm(s, values, error, lostLink);
 
+  // Alles auf einen Blick: auf breiten Bildschirmen zwei Spalten, sonst eine kompakte Spalte
   return layout({
     bigHeader: true,
-    body: html`
+    page: 'home',
+    body: html`<div class="home">
 ${hero()}
 
 <ul class="hud" aria-label="Überblick">
@@ -142,21 +145,22 @@ ${hero()}
   ${future(s.info.deadline) && !s.drawn ? html`<li class="hud-countdown"><span>Ziehung in</span>${countdown(s.info.deadline)}</li>` : ''}
   ${s.info.eventDate ? html`<li><span>Bescherung</span><b>${s.info.eventDate}</b></li>` : ''}
   ${s.info.budget ? html`<li><span>Budget</span><b>${s.info.budget}</b></li>` : ''}
-  <li><span>Status</span><b>${s.drawn ? 'Gezogen' : s.open ? 'Anmeldung offen' : s.deadlinePassed ? 'Anmeldung vorbei' : 'Pause'}</b></li>
+  ${s.open ? '' : html`<li><span>Status</span><b>${s.drawn ? 'Gezogen' : s.deadlinePassed ? 'Anmeldung vorbei' : 'Pause'}</b></li>`}
 </ul>
 
-${s.info.info ? panel('Infos von der Orga', html`<p class="pre">${s.info.info}</p>`) : ''}
-
 ${panel('So geht’s', html`<ol class="steps">
-  <li>${sprite('letter', 64, 48)}<div><b>1 · Anmelden</b><p>Name und E-Mail eintragen. Fertig.</p></div></li>
-  <li>${sprite('star', 60, 52)}<div><b>2 · Ziehung</b><p>${s.info.deadline ? 'Nach dem Anmeldeschluss wird automatisch gelost.' : 'Sind alle dabei, wird gelost.'} ${s.mail ? 'Per E-Mail' : 'Über deinen Link'} erfährst du, wen du beschenkst.</p></div></li>
-  <li>${sprite('gift', 64, 64)}<div><b>3 · Schenken</b><p>Geschenk besorgen, nichts verraten, bei der Bescherung staunen.</p></div></li>
-</ol>`)}
+  <li>${sprite('letter', 64, 48)}<div><b>1 · Anmelden</b><p>Name und E-Mail eintragen.</p></div></li>
+  <li>${sprite('star', 60, 52)}<div><b>2 · Ziehung</b><p>${s.info.deadline ? 'Automatisch zum Stichtag.' : 'Die Orga lost aus.'} ${s.mail ? 'Dein Los kommt per E-Mail.' : 'Dein Los steht hinter deinem Link.'}</p></div></li>
+  <li>${sprite('gift', 64, 64)}<div><b>3 · Schenken</b><p>Heimlich schenken, nichts verraten!</p></div></li>
+</ol>`, 'steps-panel')}
 
-<section class="panel" id="anmelden">
+${s.info.info ? panel('Infos von der Orga', html`<p class="pre">${s.info.info}</p>`, 'info-panel') : ''}
+
+<section class="panel join" id="anmelden">
   <h2>Mitmachen</h2>
   ${join}
-</section>`,
+</section>
+</div>`,
   });
 }
 

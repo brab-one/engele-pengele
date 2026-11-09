@@ -109,9 +109,9 @@ document.addEventListener('submit', (event) => {
   function plantForest() {
     if (!forest) return;
     forest.classList.add('live');
-    const need = Math.ceil(forest.clientWidth / 64) + 1;
+    const need = Math.ceil(forest.clientWidth / 32) + 1; // Bäume sind 32–48 px breit
     while (trees.length < need) {
-      const tree = new Image(64, 64);
+      const tree = new Image(48, 48);
       tree.src = '/img/tree.svg';
       tree.alt = '';
       forest.append(tree);
@@ -138,8 +138,8 @@ document.addEventListener('submit', (event) => {
         boom.src = '/img/boom.svg';
         boom.alt = '';
         boom.className = 'tree-boom';
-        boom.style.left = `${tree.offsetLeft + 32 - size / 2 + dx}px`;
-        boom.style.bottom = `${Math.round((64 - size) / 2) + 4}px`;
+        boom.style.left = `${tree.offsetLeft + tree.offsetWidth / 2 - size / 2 + dx}px`;
+        boom.style.bottom = `${Math.round((tree.offsetHeight - size) / 2) + 4}px`;
         forest.append(boom);
         setTimeout(() => boom.remove(), 650);
       }, delay);
