@@ -1,0 +1,15 @@
+{
+  "name": "engele-pengele",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pengele Engele – geheimes Wichteln mit einfacher Anmeldung",
+  "type": "module",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "node --test",
+    "sprites": "node tools/pixelart.js"
+  }
+}
